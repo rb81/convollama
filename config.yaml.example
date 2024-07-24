@@ -1,0 +1,8 @@
+moderator_model: "wizardlm2:latest"
+participant_model: "llama3.1:latest"
+num_participants: 2
+max_context_length: 6
+ollama_host: "http://localhost:11434"
+use_profiles: true
+save_path: "~/Downloads/ConvOllama"
+max_messages: 50  # Set to any number, or omit for infinite messages
