@@ -38,14 +38,17 @@ ConvOllama is a Python application that facilitates AI-driven conversations usin
 Create a `config.yaml` file in the project root directory with the following structure:
 
 ```yaml
-moderator_model: "wizardlm2"
-participant_model: "llama3.1"
+moderator_model: "wizardlm2:latest"
+participant_model: "llama3.1:latest"
+use_profiles: true  # Set to false to disable profiles
 num_participants: 2
-max_context_length: 6
-ollama_host: "http://localhost:11434"
-use_profiles: true
-save_path: "~/Downloads/ConvOllama"
+max_context_length: 8
 max_messages: 50  # Set to any number, or omit for infinite messages
+ollama_host: "http://localhost:11434"
+save_path: "~/Downloads/ConvOllama"
+timeout: 60  # in seconds
+max_retries: 3
+message_delay: 1  # in seconds
 ```
 
 Adjust the values according to your preferences and setup.
@@ -64,7 +67,12 @@ or specify a custom configuration file:
 python convollama.py -c path/to/your/config.yaml
 ```
 
-Follow the prompts to enter keywords for the conversation topic. The AI will generate a topic, create profiles for participants (if enabled), and start the conversation.
+You will be prompted with two options:
+
+1. Enter comma-separated keywords and have Moderator generate an appropriate discussion topic,
+2. Enter a discussion topic yourself (which is great for setting up brainstorming sessions).
+
+The Moderator will then create profiles for participants (if enabled), and start the conversation.
 
 To end the conversation, press Ctrl+C. The program will save the conversation and exit gracefully.
 
