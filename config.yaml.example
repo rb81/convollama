@@ -1,8 +1,11 @@
 moderator_model: "wizardlm2:latest"
 participant_model: "llama3.1:latest"
+use_profiles: true  # Set to false to disable profiles
 num_participants: 2
-max_context_length: 6
-ollama_host: "http://localhost:11434"
-use_profiles: true
-save_path: "~/Downloads/ConvOllama"
+max_context_length: 8
 max_messages: 50  # Set to any number, or omit for infinite messages
+ollama_host: "http://localhost:11434"
+save_path: "~/Downloads/ConvOllama"
+timeout: 60  # in seconds
+max_retries: 3
+message_delay: 1  # in seconds
