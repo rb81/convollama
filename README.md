@@ -43,7 +43,7 @@ moderator_model: "wizardlm2:latest"
 ollama_host: "http://localhost:11434"
 save_path: "~/Downloads/ConvOllama"
 available_models:
-  - "llama3.1:lateste"
+  - "llama3.1:latest"
   - "gemma2:latest"
   - "falcon2:latest"
 ```
