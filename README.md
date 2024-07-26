@@ -6,9 +6,10 @@ ConvOllama is a Python application that facilitates AI-driven conversations usin
 
 ## Features
 
-- Dynamic topic generation based on user input
-- Multi-participant conversations with AI-generated profiles
-- Configurable conversation parameters (number of participants, max messages, etc.)
+- Dynamic topic generation based on user input or keywords
+- Multi-participant conversations with AI-generated or user-defined profiles
+- User-selectable LLM models for participants
+- Configurable conversation parameters (number of participants, rounds, etc.)
 - Real-time conversation display with colorized output
 - Automatic saving of conversations in both JSON and Markdown formats
 - Graceful handling of program interruption
@@ -39,16 +40,12 @@ Create a `config.yaml` file in the project root directory with the following str
 
 ```yaml
 moderator_model: "wizardlm2:latest"
-participant_model: "llama3.1:latest"
-use_profiles: true  # Set to false to disable profiles
-num_participants: 2
-max_context_length: 8
-max_messages: 50  # Set to any number, or omit for infinite messages
 ollama_host: "http://localhost:11434"
 save_path: "~/Downloads/ConvOllama"
-timeout: 60  # in seconds
-max_retries: 3
-message_delay: 1  # in seconds
+available_models:
+  - "llama3.1:lateste"
+  - "gemma2:latest"
+  - "falcon2:latest"
 ```
 
 Adjust the values according to your preferences and setup.
@@ -58,23 +55,29 @@ Adjust the values according to your preferences and setup.
 Run the application using the following command:
 
 ```
-python convollama.py
+python main.py
 ```
 
 or specify a custom configuration file:
 
 ```
-python convollama.py -c path/to/your/config.yaml
+python main.py -c path/to/your/config.yaml
 ```
 
-You will be prompted with two options:
+You will be guided through the following steps:
 
-1. Enter comma-separated keywords and have Moderator generate an appropriate discussion topic,
-2. Enter a discussion topic yourself (which is great for setting up brainstorming sessions).
+1. Choose the number of participants (minimum 2)
+2. Select the LLM model for the participants
+3. Determine the conversation topic:
+   - Enter keywords and have the Moderator generate a topic
+   - Enter a discussion topic yourself
+4. For each participant:
+   - Provide a profile yourself
+   - Have the Moderator generate a profile
+   - Choose no profile
+5. Set the number of conversation rounds
 
-The Moderator will then create profiles for participants (if enabled), and start the conversation.
-
-To end the conversation, press Ctrl+C. The program will save the conversation and exit gracefully.
+The conversation will then begin. To end the conversation early, press Ctrl+C. The program will save the conversation and exit gracefully.
 
 ## Output
 
@@ -87,7 +90,7 @@ Both files are saved in the directory specified by `save_path` in the configurat
 
 ## Model Recommendations
 
-The Moderator seems to work best with `wizardlm2`. Recommended Participant models include Meta's new `llama3.1`, `gemma2`, and `llama3`.
+The Moderator works well with `wizardlm2`. Recommended Participant models include Meta's new `llama3.1`, `gemma2`, and `llama3`. You can customize the list of available models in the configuration file.
 
 ## Demonstration
 
