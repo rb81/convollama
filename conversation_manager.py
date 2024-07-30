@@ -3,6 +3,9 @@ from moderator import Moderator
 from cli import display_conversation, clear_screen
 from utils import animate_thinking
 import threading
+import logging
+
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class ConversationManager:
     def __init__(self, config, num_participants, selected_model, topic, profiles, num_rounds):
@@ -17,28 +20,29 @@ class ConversationManager:
         self.moderator = Moderator(config['moderator_model'], config['ollama_host'])
         self.thinking = False
         self.stop_event = threading.Event()
+        logging.info(f"Initialized ConversationManager with {num_participants} participants and {num_rounds} rounds")
 
     def create_participants(self):
-        return [Participant(self.selected_model, self.profiles[i], self.topic, f"Participant {i+1}", self.config['ollama_host']) 
+        participants = [Participant(self.selected_model, self.profiles[i], self.topic, f"Participant {i+1}", self.config['ollama_host']) 
                 for i in range(self.num_participants)]
-
-    def create_participants(self):
-        return [Participant(self.config['participant_model'], self.profiles[i], self.topic, f"Participant {i+1}", self.config['ollama_host']) 
-                for i in range(self.num_participants)]
+        logging.info(f"Created {len(participants)} participants")
+        return participants
 
     def initialize_conversation_history(self):
         history = [{"role": "system", "content": f"Topic: {self.topic}"}]
         for i, profile in enumerate(self.profiles):
             if profile:
                 history.append({"role": "system", "content": f"Participant {i+1} profile: {profile}"})
+        logging.debug(f"Initialized conversation history: {history}")
         return history
 
     def run_conversation(self):
         try:
-            clear_screen()  # Clear the screen before starting the conversation
-            display_conversation(self.conversation_history)  # Display initial topic and profiles
+            clear_screen()
+            display_conversation(self.conversation_history)
             
             for round_num in range(self.num_rounds):
+                logging.info(f"Starting round {round_num + 1}")
                 for participant in self.participants:
                     is_final_round = (round_num == self.num_rounds - 1)
                     
@@ -46,6 +50,7 @@ class ConversationManager:
                     animation_thread = threading.Thread(target=animate_thinking, args=(participant.name, self.stop_event))
                     animation_thread.start()
                     
+                    logging.debug(f"Generating response for {participant.name}")
                     response = participant.generate_response(self.conversation_history, is_final_round)
                     
                     self.thinking = False
@@ -54,8 +59,8 @@ class ConversationManager:
                     self.stop_event.clear()
 
                     self.conversation_history.append({"role": participant.name, "content": response})
+                    logging.info(f"Added response from {participant.name} to conversation history")
                     
-                    # Update other participants' contexts
                     for other in self.participants:
                         if other != participant:
                             other.update_context(self.conversation_history[-1])
@@ -64,7 +69,10 @@ class ConversationManager:
 
             return self.conversation_history
         except KeyboardInterrupt:
-            print("\nConversation interrupted by user.")
+            logging.warning("Conversation interrupted by user.")
+            return self.conversation_history
+        except Exception as e:
+            logging.error(f"An error occurred during the conversation: {e}")
             return self.conversation_history
         finally:
             self.stop_event.set()

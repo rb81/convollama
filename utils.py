@@ -4,17 +4,53 @@ from datetime import datetime
 import ollama
 import sys
 import time
-from colorama import Fore, Style
+from colorama import Fore, Style, init
+import threading
 
-def check_ollama_connection(host):
+init(autoreset=True)  # Initialize colorama
+
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def check_ollama_connection_with_animation(host, timeout=10):
     client = ollama.Client(host=host)
+    stop_event = threading.Event()
+    animation_thread = threading.Thread(target=connection_animation, args=(stop_event,))
+    animation_thread.start()
+
     try:
-        # Try to list models as a simple check
-        client.list()
-        return True
-    except Exception as e:
-        print(f"Error connecting to Ollama server at {host}: {e}")
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                client.list()
+                stop_event.set()
+                animation_thread.join()
+                clear_screen()
+                print(f"{Fore.GREEN}Successfully connected to Ollama server at {host}{Style.RESET_ALL}")
+                return True
+            except Exception:
+                time.sleep(0.5)
+        
+        stop_event.set()
+        animation_thread.join()
+        clear_screen()
+        print(f"{Fore.RED}Failed to connect to Ollama server at {host} within {timeout} seconds{Style.RESET_ALL}")
         return False
+    except KeyboardInterrupt:
+        stop_event.set()
+        animation_thread.join()
+        clear_screen()
+        print(f"{Fore.YELLOW}Connection attempt cancelled by user{Style.RESET_ALL}")
+        return False
+
+def connection_animation(stop_event):
+    frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    i = 0
+    while not stop_event.is_set():
+        sys.stdout.write(f"\r{Fore.CYAN}Connecting to Ollama server {frames[i % len(frames)]}{Style.RESET_ALL}")
+        sys.stdout.flush()
+        time.sleep(0.1)
+        i += 1
 
 def save_conversation(conversation_history, save_path):
     if not conversation_history:
