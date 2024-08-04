@@ -5,8 +5,6 @@ from utils import animate_thinking
 import threading
 import logging
 
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-
 class ConversationManager:
     def __init__(self, config, num_participants, selected_model, topic, profiles, num_rounds):
         self.config = config
@@ -32,6 +30,21 @@ class ConversationManager:
             logging.warning(f"Invalid history_limit value: {limit}. Using full history.")
             return None
 
+    def get_limited_history(self):
+        if self.history_limit is None:
+            return self.conversation_history
+
+        # Only limit participant messages
+        participant_messages = [msg for msg in self.conversation_history if msg['role'] not in ['system', 'user']]
+        
+        # Calculate the number of participant messages to keep
+        messages_to_keep = self.history_limit * self.num_participants
+
+        # Get the most recent participant messages
+        limited_participant_messages = participant_messages[-messages_to_keep:] if messages_to_keep < len(participant_messages) else participant_messages
+
+        return limited_participant_messages
+
     def create_participants(self):
         participants = [Participant(self.selected_model, self.profiles[i], self.topic, f"Participant {i+1}", self.config['ollama_host']) 
                 for i in range(self.num_participants)]
@@ -49,12 +62,17 @@ class ConversationManager:
     def get_limited_history(self):
         if self.history_limit is None:
             return self.conversation_history
-        
+
+        # Separate system messages and participant messages
         system_messages = [msg for msg in self.conversation_history if msg['role'] == 'system']
         participant_messages = [msg for msg in self.conversation_history if msg['role'] != 'system']
         
-        limit = self.history_limit * self.num_participants
-        limited_participant_messages = participant_messages[-limit:] if limit < len(participant_messages) else participant_messages
+        # Calculate the number of participant messages to keep
+        messages_to_keep = self.history_limit * self.num_participants
+
+        # Get the most recent participant messages
+        limited_participant_messages = participant_messages[-messages_to_keep:] if messages_to_keep < len(participant_messages) else participant_messages
+
         return system_messages + limited_participant_messages
 
     def run_conversation(self):
@@ -73,6 +91,7 @@ class ConversationManager:
                     
                     logging.debug(f"Generating response for {participant.name}")
                     limited_history = self.get_limited_history()
+                    
                     response = participant.generate_response(limited_history, is_final_round)
                     
                     self.thinking = False
@@ -80,12 +99,9 @@ class ConversationManager:
                     animation_thread.join()
                     self.stop_event.clear()
 
+                    # Store the response with the participant's name for display
                     self.conversation_history.append({"role": participant.name, "content": response})
                     logging.info(f"Added response from {participant.name} to conversation history")
-                    
-                    for other in self.participants:
-                        if other != participant:
-                            other.update_context(self.conversation_history[-1])
                     
                     display_conversation(self.conversation_history)
 
@@ -94,7 +110,7 @@ class ConversationManager:
             logging.warning("Conversation interrupted by user.")
             return self.conversation_history
         except Exception as e:
-            logging.error(f"An error occurred during the conversation: {e}")
+            logging.error(f"An error occurred during the conversation: {e}", exc_info=True)
             return self.conversation_history
         finally:
             self.stop_event.set()
