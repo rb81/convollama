@@ -123,7 +123,6 @@ def get_profile_preference(participant_num, moderator, topic):
 
 def display_conversation(conversation_history):
     clear_screen()
-    #print_header("Conversation")
     for entry in conversation_history:
         if entry['role'] == 'system':
             if entry['content'].startswith("Topic:"):
@@ -132,8 +131,12 @@ def display_conversation(conversation_history):
                 console.print(Panel(entry['content'], expand=False, border_style="yellow", padding=(1, 1)))
         else:
             title = Text(entry['role'], style="bold")
+            content = entry['content']
+            # Remove any potential "Participant X: " prefix if it exists
+            if content.startswith(entry['role'] + ":"):
+                content = content[len(entry['role'] + ":"):].strip()
             console.print(Panel(
-                entry['content'],
+                content,
                 expand=False,
                 border_style="cyan",
                 padding=(1, 1),
