@@ -4,8 +4,12 @@ from datetime import datetime
 import ollama
 import sys
 import time
-from colorama import Fore, Style, init
 import threading
+import logging
+from colorama import Fore, Style, init
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 init(autoreset=True)  # Initialize colorama
 
@@ -26,7 +30,7 @@ def check_ollama_connection_with_animation(host, timeout=10):
                 stop_event.set()
                 animation_thread.join()
                 clear_screen()
-                print(f"{Fore.GREEN}Successfully connected to Ollama server at {host}{Style.RESET_ALL}")
+                logger.info(f"{Fore.GREEN}Successfully connected to Ollama server at {host}{Style.RESET_ALL}")
                 return True
             except Exception:
                 time.sleep(0.5)
@@ -34,13 +38,13 @@ def check_ollama_connection_with_animation(host, timeout=10):
         stop_event.set()
         animation_thread.join()
         clear_screen()
-        print(f"{Fore.RED}Failed to connect to Ollama server at {host} within {timeout} seconds{Style.RESET_ALL}")
+        logger.error(f"{Fore.RED}Failed to connect to Ollama server at {host} within {timeout} seconds{Style.RESET_ALL}")
         return False
     except KeyboardInterrupt:
         stop_event.set()
         animation_thread.join()
         clear_screen()
-        print(f"{Fore.YELLOW}Connection attempt cancelled by user{Style.RESET_ALL}")
+        logger.warning(f"{Fore.YELLOW}Connection attempt cancelled by user{Style.RESET_ALL}")
         return False
 
 def connection_animation(stop_event):
@@ -54,7 +58,7 @@ def connection_animation(stop_event):
 
 def save_conversation(conversation_history, save_path):
     if not conversation_history:
-        print("No conversation history to save.")
+        logger.warning("No conversation history to save.")
         return
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -76,12 +80,10 @@ def save_conversation(conversation_history, save_path):
         for entry in conversation_history[1:]:
             f.write(f"## {entry['role']}\n\n{entry['content']}\n\n")
 
-    print(f"Conversation saved to {json_filename} and {md_filename}")
+    logger.info(f"Conversation saved to {json_filename} and {md_filename}")
 
 def truncate_context(context, max_length):
-    if len(context) > max_length:
-        return context[-max_length:]
-    return context
+    return context[-max_length:] if len(context) > max_length else context
 
 def animate_thinking(name, stop_event):
     frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]

@@ -2,11 +2,14 @@ import os
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt, IntPrompt, Confirm
-from rich.align import Align
 from rich.text import Text
 from rich import print as rprint
 from questionary import Choice
 import questionary
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 console = Console()
 
@@ -27,14 +30,13 @@ def print_header(text):
 def get_user_preferences(moderator, config):
     print_header("ConvOllama")
     
-    while True:
-        num_participants = IntPrompt.ask(
-            "How many participants should be in the conversation? (minimum 2, press Enter for default)",
-            default=2
-        )
-        if num_participants >= 2:
-            break
-        console.print("[bold red]Please enter a number greater than or equal to 2.[/bold red]")
+    num_participants = get_valid_input(
+        IntPrompt.ask,
+        "How many participants should be in the conversation? (minimum 2, press Enter for default)",
+        default=2,
+        validator=lambda x: x >= 2,
+        error_message="Please enter a number greater than or equal to 2."
+    )
     console.print()
 
     model = get_model_preference(config['available_models'])
@@ -43,20 +45,16 @@ def get_user_preferences(moderator, config):
     topic = get_topic_preference(moderator)
     console.print()
     
-    profiles = []
-    for i in range(num_participants):
-        profile = get_profile_preference(i + 1, moderator, topic)
-        profiles.append(profile)
-        console.print()
+    profiles = [get_profile_preference(i + 1, moderator, topic) for i in range(num_participants)]
+    console.print()
     
-    while True:
-        num_rounds = IntPrompt.ask(
-            "How many rounds should the conversation last? (minimum 1, press Enter for default)",
-            default=3
-        )
-        if num_rounds >= 1:
-            break
-        console.print("[bold red]Please enter a number greater than or equal to 1.[/bold red]")
+    num_rounds = get_valid_input(
+        IntPrompt.ask,
+        "How many rounds should the conversation last? (minimum 1, press Enter for default)",
+        default=3,
+        validator=lambda x: x >= 1,
+        error_message="Please enter a number greater than or equal to 1."
+    )
     console.print()
     
     return num_participants, model, topic, profiles, num_rounds
@@ -93,7 +91,7 @@ def get_topic_preference(moderator):
             console.print(f"\nGenerated topic: [bold cyan]{topic}[/bold cyan]")
             if Confirm.ask("Do you approve this topic?"):
                 return topic
-            console.print("Let's try generating a new topic.")
+            logger.info("User rejected the generated topic. Generating a new one.")
 
 def get_profile_preference(participant_num, moderator, topic):
     console.print(f"How would you like to determine Participant {participant_num}'s profile?")
@@ -117,7 +115,7 @@ def get_profile_preference(participant_num, moderator, topic):
             console.print(f"\nGenerated profile: [bold cyan]{profile}[/bold cyan]")
             if Confirm.ask("Do you approve this profile?"):
                 return profile
-            console.print("Let's try generating a new profile.")
+            logger.info(f"User rejected the generated profile for Participant {participant_num}. Generating a new one.")
     else:
         return None
 
@@ -144,3 +142,10 @@ def display_conversation(conversation_history):
                 title_align="left"
             ))
         console.print()
+
+def get_valid_input(prompt_func, prompt, default, validator, error_message):
+    while True:
+        value = prompt_func(prompt, default=default)
+        if validator(value):
+            return value
+        console.print(f"[bold red]{error_message}[/bold red]")
