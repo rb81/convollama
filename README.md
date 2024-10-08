@@ -12,6 +12,7 @@ ConvOllama is a Python application that facilitates AI-driven conversations usin
 - Real-time conversation display with colorized output
 - Automatic saving of conversations in both JSON and Markdown formats
 - Graceful handling of program interruption
+- Configurable conversation history limit and logging level
 
 ## Requirements
 
@@ -45,6 +46,8 @@ available_models:
   - "llama3.1:latest"
   - "gemma2:latest"
   - "falcon2:latest"
+history_limit: 3  # Keep the last 3 rounds of messages
+log_level: "INFO"  # Can be DEBUG, INFO, WARNING, ERROR, or CRITICAL
 ```
 
 Adjust the values according to your preferences and setup.
