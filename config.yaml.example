@@ -5,4 +5,5 @@ available_models:
   - "llama3.1:latest"
   - "gemma2:latest"
   - "falcon2:latest"
-'history_limit': 3  # Keep the last 3 rounds of messages
+history_limit: 3  # Keep the last 3 rounds of messages
+log_level: "INFO"  # Can be DEBUG, INFO, WARNING, ERROR, or CRITICAL

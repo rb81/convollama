@@ -1,6 +1,8 @@
 import ollama
-from utils import truncate_context
+
+# Configure logging
 import logging
+logger = logging.getLogger(__name__)
 
 class Participant:
     def __init__(self, model, profile, topic, name, ollama_host):
@@ -9,7 +11,7 @@ class Participant:
         self.topic = topic
         self.name = name
         self.client = ollama.Client(host=ollama_host)
-        logging.info(f"Initialized {self.name} with model {self.model}")
+        logger.info(f"Initialized {self.name} with model {self.model}")
 
     def generate_response(self, conversation_history, is_final_round=False):
         messages = [
@@ -46,25 +48,25 @@ class Participant:
                 "content": "Please provide your next response in the conversation."
             })
 
-        logging.debug(f"Generating response for {self.name}. Messages: {messages}")
+        logger.debug(f"Generating response for {self.name}. Messages: {messages}")
 
         try:
-            logging.info(f"Sending request to Ollama for {self.name} using model {self.model}")
+            logger.info(f"Sending request to Ollama for {self.name} using model {self.model}")
             response = self.client.chat(model=self.model, messages=messages)
-            logging.info(f"Received response from Ollama for {self.name}: {response}")
+            logger.info(f"Received response from Ollama for {self.name}: {response}")
             
             if 'message' not in response:
-                logging.error(f"Unexpected response structure for {self.name}: {response}")
+                logger.error(f"Unexpected response structure for {self.name}: {response}")
                 return f"{self.name} received an unexpected response structure."
             
             content = response['message'].get('content', '').strip()
             
             if not content:
-                logging.warning(f"{self.name} generated an empty response. Full response: {response}")
+                logger.warning(f"{self.name} generated an empty response. Full response: {response}")
                 return f"{self.name} is pondering silently."
             
-            logging.info(f"{self.name} generated response: {content}")
+            logger.info(f"{self.name} generated response: {content}")
             return content
         except Exception as e:
-            logging.error(f"Error generating response for {self.name}: {e}", exc_info=True)
+            logger.error(f"Error generating response for {self.name}: {e}", exc_info=True)
             return f"{self.name} is unable to respond at the moment due to a technical issue: {str(e)}"

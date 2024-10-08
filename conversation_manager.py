@@ -5,6 +5,9 @@ from utils import animate_thinking
 import threading
 import logging
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 class ConversationManager:
     def __init__(self, config, num_participants, selected_model, topic, profiles, num_rounds):
         self.config = config
@@ -19,7 +22,7 @@ class ConversationManager:
         self.thinking = False
         self.stop_event = threading.Event()
         self.history_limit = self.parse_history_limit(config.get('history_limit'))
-        logging.info(f"Initialized ConversationManager with {num_participants} participants and {num_rounds} rounds")
+        logger.info(f"Initialized ConversationManager with {num_participants} participants and {num_rounds} rounds")
 
     def parse_history_limit(self, limit):
         if limit is None:
@@ -27,28 +30,13 @@ class ConversationManager:
         try:
             return int(limit)
         except ValueError:
-            logging.warning(f"Invalid history_limit value: {limit}. Using full history.")
+            logger.warning(f"Invalid history_limit value: {limit}. Using full history.")
             return None
-
-    def get_limited_history(self):
-        if self.history_limit is None:
-            return self.conversation_history
-
-        # Only limit participant messages
-        participant_messages = [msg for msg in self.conversation_history if msg['role'] not in ['system', 'user']]
-        
-        # Calculate the number of participant messages to keep
-        messages_to_keep = self.history_limit * self.num_participants
-
-        # Get the most recent participant messages
-        limited_participant_messages = participant_messages[-messages_to_keep:] if messages_to_keep < len(participant_messages) else participant_messages
-
-        return limited_participant_messages
 
     def create_participants(self):
         participants = [Participant(self.selected_model, self.profiles[i], self.topic, f"Participant {i+1}", self.config['ollama_host']) 
                 for i in range(self.num_participants)]
-        logging.info(f"Created {len(participants)} participants")
+        logger.info(f"Created {len(participants)} participants")
         return participants
 
     def initialize_conversation_history(self):
@@ -56,7 +44,7 @@ class ConversationManager:
         for i, profile in enumerate(self.profiles):
             if profile:
                 history.append({"role": "system", "content": f"Participant {i+1} profile: {profile}"})
-        logging.debug(f"Initialized conversation history: {history}")
+        logger.debug(f"Initialized conversation history: {history}")
         return history
 
     def get_limited_history(self):
@@ -81,7 +69,7 @@ class ConversationManager:
             display_conversation(self.conversation_history)
             
             for round_num in range(self.num_rounds):
-                logging.info(f"Starting round {round_num + 1}")
+                logger.info(f"Starting round {round_num + 1}")
                 for participant in self.participants:
                     is_final_round = (round_num == self.num_rounds - 1)
                     
@@ -89,7 +77,7 @@ class ConversationManager:
                     animation_thread = threading.Thread(target=animate_thinking, args=(participant.name, self.stop_event))
                     animation_thread.start()
                     
-                    logging.debug(f"Generating response for {participant.name}")
+                    logger.debug(f"Generating response for {participant.name}")
                     limited_history = self.get_limited_history()
                     
                     response = participant.generate_response(limited_history, is_final_round)
@@ -99,18 +87,31 @@ class ConversationManager:
                     animation_thread.join()
                     self.stop_event.clear()
 
-                    # Store the response with the participant's name for display
+                    # Store the response with the participant's name as the role
                     self.conversation_history.append({"role": participant.name, "content": response})
-                    logging.info(f"Added response from {participant.name} to conversation history")
+                    logger.info(f"Added response from {participant.name} to conversation history")
                     
+                    # Display the conversation with participant names
                     display_conversation(self.conversation_history)
 
             return self.conversation_history
         except KeyboardInterrupt:
-            logging.warning("Conversation interrupted by user.")
+            logger.warning("Conversation interrupted by user.")
             return self.conversation_history
         except Exception as e:
-            logging.error(f"An error occurred during the conversation: {e}", exc_info=True)
+            logger.error(f"An error occurred during the conversation: {e}", exc_info=True)
             return self.conversation_history
         finally:
             self.stop_event.set()
+
+    def format_conversation_for_display(self):
+        formatted_history = []
+        for i, message in enumerate(self.conversation_history):
+            if message['role'] == 'user':
+                # Find the preceding system message to get the participant's name
+                if i > 0 and self.conversation_history[i-1]['role'] == 'system':
+                    participant_name = self.conversation_history[i-1]['content']
+                    formatted_history.append({"role": participant_name, "content": message['content']})
+            else:
+                formatted_history.append(message)
+        return formatted_history
